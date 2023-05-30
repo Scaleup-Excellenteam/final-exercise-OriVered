@@ -1,20 +1,20 @@
 import os
 import asyncio
-
-import httpx as httpx
-
+import openai
 
 # Define constants
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 MODEL = "gpt-3.5-turbo"
-TIMEOUT = 10
+TIMEOUT = 500
 SYSTEM_PROMPT = "You are an expert at evaluating and providing critical analysis of .pptx presentations."
 OPENAI_URL = "https://api.openai.com/v1/engines/{}/completions".format(MODEL)
 
 headers = {
     "Content-Type": "application/json",
-    "Authorization": "Bearer {}".format("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")
+    "Authorization": "Bearer {}".format("")
 }
+
 
 async def call_gpt(prompt):
     """
@@ -26,31 +26,36 @@ async def call_gpt(prompt):
     Returns:
         dict: The response from the GPT API. If an error occurs, returns a dictionary containing an error message.
     """
-    data = {
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ]
-    }
+
+    openai.api_key = OPENAI_API_KEY
+    loop = asyncio.get_event_loop()
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(
-                OPENAI_URL,
-                headers=headers,
-                json=data,
-            )
-            response.raise_for_status()
-    except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError) as e:
-        # Instead of raising the exception, return it as part of the response
+        # Run the OpenAI call within a timeout context
+        response = await asyncio.wait_for(loop.run_in_executor(None, lambda: openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ]
+            )), timeout=TIMEOUT)
+    except openai.error.OpenAIError as e:
+        print(f"Full response: {e}")
         return {
             'error': str(e),
             'prompt': prompt,
             'response': {}
         }
+    except asyncio.TimeoutError:
+        print("Request timed out")
+        return {
+            'error': 'Timeout',
+            'prompt': prompt,
+            'response': {}
+        }
 
     # If no exceptions, return the response
-    return {'prompt': prompt, 'response': response.json()}
+    return {'prompt': prompt, 'response': response.to_dict()}
 
 async def gpt_api_calls(prompts):
     """
@@ -66,5 +71,5 @@ async def gpt_api_calls(prompts):
     for prompt in prompts:
         tasks.append(call_gpt(prompt))
 
-    responses = await asyncio.gather(*tasks)
+    responses = await asyncio.gather(*tasks, return_exceptions=True)
     return responses

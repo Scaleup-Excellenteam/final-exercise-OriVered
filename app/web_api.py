@@ -7,14 +7,18 @@ from datetime import datetime
 
 # Constants
 CURRENT_DIR = os.getcwd()
-UPLOAD_FOLDER = os.path.join(CURRENT_DIR, 'uploads')
-OUTPUT_FOLDER = os.path.join(CURRENT_DIR, 'outputs')
+UPLOAD_FOLDER = os.path.abspath(os.path.join(CURRENT_DIR, 'uploads'))
+OUTPUT_FOLDER = os.path.abspath(os.path.join(CURRENT_DIR, 'outputs'))
 STATUS_DONE = 'done'
 STATUS_PENDING = 'pending'
 STATUS_NOT_FOUND = 'not found'
+ALLOWED_EXTENSIONS = {'pptx'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -33,13 +37,18 @@ def upload_file():
     file = request.files['file']
     if file.filename == '':
         return jsonify(error='No selected file'), 400
-    if file:
-        uid = str(uuid.uuid4())
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = secure_filename(file.filename)
-        new_filename = f"{filename}_{timestamp}_{uid}"
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
-        return jsonify(uid=uid), 200
+    if file and allowed_file(file.filename):
+        try:
+            uid = str(uuid.uuid4())
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = secure_filename(file.filename)
+            new_filename = f"{filename.rsplit('.', 1)[0]}_{timestamp}_{uid}.{filename.rsplit('.', 1)[1]}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], new_filename))
+            return jsonify(uid=uid), 200
+        except Exception as e:
+            return jsonify(error=str(e)), 500
+    else:
+        return jsonify(error='Invalid file type'), 400
 
 @app.route('/status/<uid>', methods=['GET'])
 def check_status(uid):

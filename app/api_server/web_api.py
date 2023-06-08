@@ -5,10 +5,12 @@ import uuid
 import json
 from datetime import datetime
 
-# Constants
+# File path
 CURRENT_DIR = os.getcwd()
-UPLOAD_FOLDER = os.path.abspath(os.path.join(CURRENT_DIR, 'uploads'))
-OUTPUT_FOLDER = os.path.abspath(os.path.join(CURRENT_DIR, 'outputs'))
+UPLOAD_FOLDER = os.path.abspath(os.path.join(CURRENT_DIR, 'app', 'uploads'))
+OUTPUT_FOLDER = os.path.abspath(os.path.join(CURRENT_DIR, 'app', 'outputs'))
+
+# Constants
 STATUS_DONE = 'done'
 STATUS_PENDING = 'pending'
 STATUS_NOT_FOUND = 'not found'

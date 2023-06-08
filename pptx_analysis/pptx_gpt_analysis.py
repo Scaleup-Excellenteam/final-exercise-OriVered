@@ -9,6 +9,7 @@ def main():
 
     # Add the arguments
     parser.add_argument('FilePath', metavar='path', type=str, help='the path to the file')
+    parser.add_argument('OutputPath', metavar='output', type=str, help='the path to output the results')
 
     # Parse the arguments
     args = parser.parse_args()
@@ -20,11 +21,10 @@ def main():
 
     # Call the function in engine.py module
     try:
-        engine.process_pptx(args.FilePath)
+        engine.process_pptx(args.FilePath, args.OutputPath)
     except Exception as e:
         print(f"An error occurred while processing the file: {e}")
 
 
 if __name__ == "__main__":
     main()
-
